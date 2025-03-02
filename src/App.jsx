@@ -46,7 +46,7 @@ function LoginScreen({ onLogin }) {
         <h1 className="text-2xl font-bold text-foreground -tracking-[0.5px] mb-1.5">
           Bienvenido de nuevo
         </h1>
-        <p className="text-muted/80  -tracking-[0.5px] mb-6">
+        <p className="text-muted/80 -tracking-[0.5px] mb-6">
           Inicia sesión en tu cuenta
         </p>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -59,7 +59,7 @@ function LoginScreen({ onLogin }) {
               type="email"
               placeholder="ejemplo@gmail.com"
               {...register("email")}
-              className="w-full rounded-lg border border-border bg-input p-3 text-white placeholder-muted/50 focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border border-border bg-input p-3 text-foreground placeholder-muted/50 focus:outline-none focus:ring-2 focus:ring-primary"
             />
             {errors.email && (
               <p className="text-error text-sm mt-1">{errors.email.message}</p>
@@ -114,7 +114,7 @@ function App() {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (event === "SIGNED_IN") {
-          setUser(session.user);
+          setUser(session?.user || null);
         } else if (event === "SIGNED_OUT") {
           setUser(null);
         }

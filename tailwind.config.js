@@ -6,6 +6,7 @@ export default {
     extend: {
       colors: {
         background: "#171717", // Fondo oscuro principal
+        backgroundtwo: "#0f0f0f", // Fondo casi negro utilizado para excepciones
         foreground: "#fafafa", // Texto claro
         primary: "#1a76ff", // Azul principal btn
         secondary: "#212631", // Gris oscuro secundario

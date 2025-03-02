@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import logo from "./assets/logo-white.png";
+import { FaPencilAlt, FaTrash } from "react-icons/fa"; // Íconos para editar y eliminar
 
 const productSchema = yup
   .object({
@@ -37,6 +38,8 @@ function ProductsScreen({ user }) {
   const [loading, setLoading] = useState(true);
   const [imagePreview, setImagePreview] = useState(null); // Para previsualizar la imagen
   const [isModalOpen, setIsModalOpen] = useState(false); // Para controlar el modal
+  const [currentPage, setCurrentPage] = useState(1);
+  const productsPerPage = 12; // 12 productos por página
 
   const fetchProductos = async () => {
     setLoading(true);
@@ -46,12 +49,12 @@ function ProductsScreen({ user }) {
         .select("*")
         .eq("usuario_id", user.id);
       if (error) {
-        setError("Error al cargar productos: " + error.message);
+        setError(`Error al cargar productos: ${error.message}`);
       } else {
         setProductos(data || []);
       }
     } catch (err) {
-      setError("Error inesperado: " + err.message);
+      setError(`Error inesperado: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -63,12 +66,20 @@ function ProductsScreen({ user }) {
       let imageUrl = null;
       if (data.imagen && data.imagen.length > 0) {
         const file = data.imagen[0];
+        console.log("Subiendo imagen:", file.name);
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("productos") // Crea un bucket "productos" en Supabase Storage si no existe
-          .upload(`public/${file.name}`, file);
-        if (uploadError) throw uploadError;
-        imageUrl = `https://tu-proyecto.supabase.co/storage/v1/object/public/productos/${file.name}`;
+          .from("productos")
+          .upload(`public/${file.name}`, file, {
+            upsert: false,
+          });
+        if (uploadError) {
+          throw new Error(`Error al subir la imagen: ${uploadError.message}`);
+        }
+        imageUrl = `https://rbxndkerdxoomlvzpdcz.supabase.co/storage/v1/object/public/productos/public/${file.name}`; // URL pública
+        console.log("URL de la imagen subida:", imageUrl);
       }
+
+      console.log("Usuario ID:", user.id);
 
       const { error } = await supabase.from("productos").insert({
         nombre: data.nombre,
@@ -77,10 +88,10 @@ function ProductsScreen({ user }) {
         color: data.color,
         precio: data.precio,
         usuario_id: user.id,
-        imagen_url: imageUrl, // Guarda la URL de la imagen en la base de datos
+        imagen_url: imageUrl,
       });
       if (error) {
-        setError("Error al agregar producto: " + error.message);
+        throw new Error(`Error al agregar producto: ${error.message}`);
       } else {
         reset();
         setImagePreview(null);
@@ -88,7 +99,7 @@ function ProductsScreen({ user }) {
         await fetchProductos();
       }
     } catch (err) {
-      setError("Error inesperado: " + err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -113,11 +124,17 @@ function ProductsScreen({ user }) {
       let imageUrl = editProducto.imagen_url;
       if (data.imagen && data.imagen.length > 0) {
         const file = data.imagen[0];
+        console.log("Subiendo imagen:", file.name);
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("productos")
-          .upload(`public/${file.name}`, file);
-        if (uploadError) throw uploadError;
-        imageUrl = `https://tu-proyecto.supabase.co/storage/v1/object/public/productos/${file.name}`;
+          .upload(`public/${file.name}`, file, {
+            upsert: false,
+          });
+        if (uploadError) {
+          throw new Error(`Error al subir la imagen: ${uploadError.message}`);
+        }
+        imageUrl = `https://rbxndkerdxoomlvzpdcz.supabase.co/storage/v1/object/public/productos/public/${file.name}`; // URL pública
+        console.log("URL de la imagen subida:", imageUrl);
       }
 
       const { error } = await supabase
@@ -132,7 +149,7 @@ function ProductsScreen({ user }) {
         })
         .eq("id", editProducto.id);
       if (error) {
-        setError("Error al actualizar producto: " + error.message);
+        throw new Error(`Error al actualizar producto: ${error.message}`);
       } else {
         setEditProducto(null);
         reset();
@@ -141,7 +158,7 @@ function ProductsScreen({ user }) {
         await fetchProductos();
       }
     } catch (err) {
-      setError("Error inesperado: " + err.message);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -175,11 +192,22 @@ function ProductsScreen({ user }) {
     );
   }
 
+  // Paginación
+  const indexOfLastProduct = currentPage * productsPerPage;
+  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+  const currentProducts = productos.slice(
+    indexOfFirstProduct,
+    indexOfLastProduct
+  );
+  const totalPages = Math.ceil(productos.length / productsPerPage);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
   return (
-    <div className="min-h-screen bg-background max-w-6xl mx-auto font-sans p-6 ">
+    <div className="min-h-screen bg-background max-w-6xl mx-auto font-sans p-6">
       {/* Barra superior */}
       <header className="flex justify-between items-center pb-6 border-b border-border">
-        <img src={logo} alt="Logo" className="w-48" />
+        <img src={logo} alt="Logo" className="w-32 md:w-48" />
         <button
           onClick={() => setIsModalOpen(true)}
           className="rounded-lg bg-primary border border-blue-400 text-white px-4 py-2 transition-colors duration-300 hover:bg-opacity-90"
@@ -192,49 +220,70 @@ function ProductsScreen({ user }) {
       {error && <p className="text-error text-sm mt-2">{error}</p>}
 
       <div className="mt-6">
-        {productos.length === 0 ? (
+        {currentProducts.length === 0 ? (
           <p className="text-muted text-lg text-center">No hay productos.</p>
         ) : (
-          <div className="space-y-4">
-            {productos.map((producto) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {currentProducts.map((producto) => (
               <div
                 key={producto.id}
-                className="bg-secondary rounded-lg shadow-md p-4 flex justify-between items-center transition-transform duration-300 ease-in-out hover:translate-y-[-2px] hover:shadow-lg"
+                className="bg-secondary border border-border rounded-lg shadow-md p-4 flex transition-transform duration-300 ease-in-out hover:translate-y-[-2px] hover:shadow-lg"
               >
-                <div>
+                <div className="w-1/3">
+                  {producto.imagen_url && (
+                    <img
+                      src={producto.imagen_url}
+                      alt={producto.nombre}
+                      className="rounded-lg w-full h-auto border border-border/50 shadow-lg object-cover"
+                    />
+                  )}
+                </div>
+                <div className="w-2/3 pl-4">
                   <p className="text-lg text-foreground">{producto.nombre}</p>
                   <p className="text-muted">{producto.descripcion}</p>
                   <p className="text-muted">
                     Stock: {producto.stock}, Color: {producto.color}, Precio: $
                     {producto.precio}
                   </p>
-                  {producto.imagen_url && (
-                    <img
-                      src={producto.imagen_url}
-                      alt={producto.nombre}
-                      className="mt-2 rounded-lg max-w-xs"
-                    />
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEditarProducto(producto)}
-                    className="p-2 text-primary hover:text-opacity-80 transition-colors duration-300 hover:scale-110"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={() => handleEliminarProducto(producto.id)}
-                    className="p-2 text-error hover:text-opacity-80 transition-colors duration-300 hover:scale-110"
-                  >
-                    🗑️
-                  </button>
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => handleEditarProducto(producto)}
+                      className="p-2 text-muted/60 border border-border rounded-lg hover:text-opacity-80 transition-colors duration-300 hover:text-muted"
+                    >
+                      <FaPencilAlt />
+                    </button>
+                    <button
+                      onClick={() => handleEliminarProducto(producto.id)}
+                      className="p-2 text-muted/60 border border-border rounded-lg hover:text-opacity-80 transition-colors duration-300 hover:text-muted"
+                    >
+                      <FaTrash />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Paginación */}
+      {totalPages > 1 && (
+        <div className="mt-6 flex justify-center gap-2">
+          {Array.from({ length: totalPages }, (_, i) => (
+            <button
+              key={i + 1}
+              onClick={() => paginate(i + 1)}
+              className={`px-3 py-1 rounded-lg ${
+                currentPage === i + 1
+                  ? "bg-primary text-white"
+                  : "bg-secondary text-foreground hover:bg-muted/5"
+              } transition-colors duration-300`}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Modal para añadir/editar producto */}
       {isModalOpen && (

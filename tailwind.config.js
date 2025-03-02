@@ -9,9 +9,9 @@ export default {
         backgroundtwo: "#0f0f0f", // Fondo casi negro utilizado para excepciones
         foreground: "#fafafa", // Texto claro
         primary: "#1a76ff", // Azul principal btn
-        secondary: "#212631", // Gris oscuro secundario
+        secondary: "#1f1f1f", // Gris oscuro secundario
         muted: "#e0e4eb", // Gris medio para texto secundario
-        border: "#363636", // Borde gris oscuro
+        border: "#2e2e2e", // Borde gris oscuro
         input: "#1c1c1c", // Fondo para inputs
         error: "#FF3B30", // Rojo para errores
       },

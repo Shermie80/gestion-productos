@@ -35,20 +35,20 @@ function App() {
     {
       text: "Antes usaba redes sociales para todo, pero necesitaba algo más para mostrar y detallar mis creaciones, el catálogo se ajustó a la medida.",
       name: "Sofía Hernández",
-      title: "Creadora de Arte & Diseño",
+      title: "Creadora de Arte & Diseño.",
       avatar: "./src/assets/avatar.jpg",
     },
     {
-      text: "La facilidad para organizar mis productos y compartirlos con mis clientes ha sido un cambio total. ¡No imagino volver atrás!",
-      name: "Martín López",
-      title: "Emprendedor Gastronómico",
-      avatar: "./src/assets/avatar2.jpg",
+      text: "Logré tener mi web sin gastar una fortuna. Ahora mis clientes pueden ver mi catálogo de productos y realizar consultas de forma sencilla. 100% recomendado!!",
+      name: "María Guaglianone",
+      title: "Emprendedora.",
+      avatar: "./src/assets/avatar1.jpg",
     },
     {
-      text: "El diseño es súper intuitivo y me permitió mostrar mi trabajo de forma profesional sin complicaciones.",
-      name: "Lucía Gómez",
-      title: "Fotógrafa Independiente",
-      avatar: "./src/assets/avatar3.jpg",
+      text: "Nos ayudaron a crear un catalogo de usados, ahora nuestros clientes encuentran información clara y agendan pruebas sin problemas. ¡Un gran aliado!",
+      name: "Daniel Ríos",
+      title: "Concesionaria.",
+      avatar: "./src/assets/avatar2.jpg",
     },
   ];
 
@@ -132,7 +132,7 @@ function App() {
         />
         <a
           href="https://miwebly.com/contacto"
-          className="text-muted/85 rounded-lg text-xs bg-muted/5 border border-border py-1 px-4 hover:text-white"
+          className="text-muted/85 rounded-lg text-xs mt-1 bg-muted/5 border border-border py-1 px-4 hover:text-white"
         >
           Reportar error
         </a>
@@ -141,7 +141,7 @@ function App() {
         <div className="rounded-lg w-full h-full flex flex-col justify-center md:flex-row">
           <div className="w-full md:w-1/2 p-8">
             <div className="max-w-md mx-auto h-full flex flex-col justify-center">
-              <h2 className="text-4xl text-white font-semibold -tracking-[0.5px] mb-2">
+              <h2 className="text-4xl text-white font-semibold -tracking-[0.5px] text-balance mb-2">
                 Bienvenido de nuevo
               </h2>
               <p className="text-muted/80 -tracking-[0.5px] mb-6">
@@ -221,7 +221,9 @@ function App() {
                       <p className="text-muted font-medium">
                         {randomTestimonial.name}
                       </p>
-                      <p className="text-muted/50">{randomTestimonial.title}</p>
+                      <p className="text-muted/50 text-sm">
+                        {randomTestimonial.title}
+                      </p>
                     </div>
                   </div>
                 </div>

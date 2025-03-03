@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabase";
-import ProductForm from "./ProductForm"; // Importa el componente nuevo
+import ProductForm from "./ProductForm";
 import logo from "./assets/logo-white.png";
 import {
   FaPencilAlt,
@@ -16,7 +16,7 @@ function ProductsScreen({ user }) {
   const [productos, setProductos] = useState([]);
   const [editProducto, setEditProducto] = useState(null);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Iniciar en false para evitar "Cargando" inicial innecesario
   const [imagePreview, setImagePreview] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -27,14 +27,24 @@ function ProductsScreen({ user }) {
   const productsPerPage = 12;
 
   const fetchProductos = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("productos")
-      .select("*")
-      .eq("usuario_id", user.id);
-    setProductos(data || []);
-    setLoading(false);
-    if (error) setError(`Error al cargar productos: ${error.message}`);
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("productos")
+        .select("*")
+        .eq("usuario_id", user.id);
+
+      if (error) {
+        throw error;
+      }
+
+      setProductos(data || []);
+    } catch (err) {
+      setError(`Error al cargar productos: ${err.message}`);
+      setProductos([]); // Asegurarse de que productos esté vacío si falla
+    } finally {
+      setLoading(false); // Asegurarse de que loading se desactive siempre
+    }
   };
 
   const handleAgregarProducto = async ({
@@ -44,35 +54,38 @@ function ProductsScreen({ user }) {
     color,
     precio,
   }) => {
-    setLoading(true);
-    let imageUrl = null;
-    const file = document.getElementById("imagen")?.files?.[0];
-    if (file) {
-      const { error: uploadError } = await supabase.storage
-        .from("productos")
-        .upload(`public/${file.name}`, file);
-      if (uploadError) {
-        setError(`Error al subir imagen: ${uploadError.message}`);
-        setLoading(false);
-        return;
+    try {
+      setLoading(true);
+      let imageUrl = null;
+      const file = document.getElementById("imagen")?.files?.[0];
+      if (file) {
+        const { error: uploadError } = await supabase.storage
+          .from("productos")
+          .upload(`public/${file.name}`, file);
+        if (uploadError) {
+          throw new Error(`Error al subir imagen: ${uploadError.message}`);
+        }
+        imageUrl = `https://rbxndkerdxoomlvzpdcz.supabase.co/storage/v1/object/public/productos/public/${file.name}`;
       }
-      imageUrl = `https://rbxndkerdxoomlvzpdcz.supabase.co/storage/v1/object/public/productos/public/${file.name}`;
-    }
-    const { error } = await supabase.from("productos").insert({
-      nombre,
-      descripcion,
-      stock,
-      color,
-      precio,
-      usuario_id: user.id,
-      imagen_url: imageUrl,
-    });
-    if (error) setError(`Error al agregar producto: ${error.message}`);
-    else {
+      const { error } = await supabase.from("productos").insert({
+        nombre,
+        descripcion,
+        stock,
+        color,
+        precio,
+        usuario_id: user.id,
+        imagen_url: imageUrl,
+      });
+      if (error) {
+        throw new Error(`Error al agregar producto: ${error.message}`);
+      }
       resetForm();
-      fetchProductos();
+      await fetchProductos();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleEditarProducto = (producto) => {
@@ -88,50 +101,64 @@ function ProductsScreen({ user }) {
     color,
     precio,
   }) => {
-    setLoading(true);
-    let imageUrl = editProducto.imagen_url;
-    const file = document.getElementById("imagen")?.files?.[0];
-    if (file) {
-      const { error: uploadError } = await supabase.storage
-        .from("productos")
-        .upload(`public/${file.name}`, file);
-      if (uploadError) {
-        setError(`Error al subir imagen: ${uploadError.message}`);
-        setLoading(false);
-        return;
+    try {
+      setLoading(true);
+      let imageUrl = editProducto.imagen_url;
+      const file = document.getElementById("imagen")?.files?.[0];
+      if (file) {
+        const { error: uploadError } = await supabase.storage
+          .from("productos")
+          .upload(`public/${file.name}`, file);
+        if (uploadError) {
+          throw new Error(`Error al subir imagen: ${uploadError.message}`);
+        }
+        imageUrl = `https://rbxndkerdxoomlvzpdcz.supabase.co/storage/v1/object/public/productos/public/${file.name}`;
       }
-      imageUrl = `https://rbxndkerdxoomlvzpdcz.supabase.co/storage/v1/object/public/productos/public/${file.name}`;
-    }
-    const { error } = await supabase
-      .from("productos")
-      .update({
-        nombre,
-        descripcion,
-        stock,
-        color,
-        precio,
-        imagen_url: imageUrl,
-      })
-      .eq("id", editProducto.id);
-    if (error) setError(`Error al actualizar producto: ${error.message}`);
-    else {
+      const { error } = await supabase
+        .from("productos")
+        .update({
+          nombre,
+          descripcion,
+          stock,
+          color,
+          precio,
+          imagen_url: imageUrl,
+        })
+        .eq("id", editProducto.id);
+      if (error) {
+        throw new Error(`Error al actualizar producto: ${error.message}`);
+      }
       resetForm();
-      fetchProductos();
+      await fetchProductos();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleEliminarProducto = async (id) => {
-    setLoading(true);
-    const { error } = await supabase.from("productos").delete().eq("id", id);
-    if (error) setError(`Error al eliminar producto: ${error.message}`);
-    else fetchProductos();
-    setLoading(false);
+    try {
+      setLoading(true);
+      const { error } = await supabase.from("productos").delete().eq("id", id);
+      if (error) {
+        throw new Error(`Error al eliminar producto: ${error.message}`);
+      }
+      await fetchProductos();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    // Redirigir o manejar el cierre de sesión según tu app
+    try {
+      await supabase.auth.signOut();
+      setUser(null); // Esto debería manejarse en App.jsx vía onAuthStateChange
+    } catch (err) {
+      setError(`Error al cerrar sesión: ${err.message}`);
+    }
   };
 
   const resetForm = () => {
@@ -141,15 +168,18 @@ function ProductsScreen({ user }) {
   };
 
   useEffect(() => {
-    fetchProductos();
-  }, [user.id]);
+    if (user) {
+      fetchProductos();
+    }
+  }, [user]);
 
-  if (loading)
+  if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         Cargando...
       </div>
     );
+  }
 
   const filteredProducts = productos.filter(
     (p) =>
@@ -168,7 +198,6 @@ function ProductsScreen({ user }) {
 
   return (
     <div className="min-h-screen bg-background flex font-sans">
-      {/* Barra lateral */}
       <aside
         className={`fixed inset-y-0 left-0 w-64 bg-secondary border-r border-border p-4 transform ${
           isMenuOpen ? "translate-x-0" : "-translate-x-full"
@@ -199,7 +228,10 @@ function ProductsScreen({ user }) {
           <li className="py-2 text-muted hover:text-foreground cursor-pointer flex items-center gap-2">
             <FaCog /> Configuración
           </li>
-          <li className="py-2 text-muted hover:text-foreground cursor-pointer flex items-center gap-2">
+          <li
+            className="py-2 text-muted hover:text-foreground cursor-pointer flex items-center gap-2"
+            onClick={handleSignOut}
+          >
             <FaSignOutAlt /> Cerrar sesión
           </li>
         </ul>
@@ -239,9 +271,7 @@ function ProductsScreen({ user }) {
         </div>
       </aside>
 
-      {/* Contenido principal */}
       <div className="flex-1 md:ml-64">
-        {/* Barra superior */}
         <header className="flex justify-between items-center p-4 bg-secondary border-b border-border">
           <button
             className="md:hidden text-foreground"
@@ -257,7 +287,6 @@ function ProductsScreen({ user }) {
           </button>
         </header>
 
-        {/* Contenedor de productos o formulario */}
         <main className="p-6">
           {error && <p className="text-error text-sm mb-4">{error}</p>}
           {isAdding ? (

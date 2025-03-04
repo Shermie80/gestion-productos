@@ -160,7 +160,7 @@ function App() {
                     type="email"
                     placeholder="ejemplo@gmail.com"
                     {...register("email")}
-                    className="w-full rounded-lg border border-border bg-input p-3 text-foreground placeholder-muted/50 focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full rounded-lg border border-border bg-secondary p-3 text-foreground placeholder-muted/50 focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                   {errors.email && (
                     <p className="text-error text-sm mt-1">
@@ -178,9 +178,9 @@ function App() {
                   <input
                     id="password"
                     type="password"
-                    placeholder="Contraseña"
+                    placeholder="Ingrese su contraseña"
                     {...register("password")}
-                    className="w-full rounded-lg border border-border bg-input p-3 text-foreground placeholder-muted/50 focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="w-full rounded-lg border border-border bg-secondary p-3 text-foreground placeholder-muted/50 focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                   {errors.password && (
                     <p className="text-error text-sm mt-1">

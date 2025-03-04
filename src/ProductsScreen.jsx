@@ -10,13 +10,14 @@ import {
   FaBox,
   FaCog,
   FaSignOutAlt,
+  FaList,
 } from "react-icons/fa";
 
 function ProductsScreen({ user }) {
   const [productos, setProductos] = useState([]);
   const [editProducto, setEditProducto] = useState(null);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false); // Iniciar en false para evitar "Cargando" inicial innecesario
+  const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -24,6 +25,9 @@ function ProductsScreen({ user }) {
   const [filterStock, setFilterStock] = useState("");
   const [filterColor, setFilterColor] = useState("");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [productoToDelete, setProductoToDelete] = useState(null);
   const productsPerPage = 12;
 
   const fetchProductos = async () => {
@@ -41,9 +45,9 @@ function ProductsScreen({ user }) {
       setProductos(data || []);
     } catch (err) {
       setError(`Error al cargar productos: ${err.message}`);
-      setProductos([]); // Asegurarse de que productos esté vacío si falla
+      setProductos([]);
     } finally {
-      setLoading(false); // Asegurarse de que loading se desactive siempre
+      setLoading(false);
     }
   };
 
@@ -149,13 +153,24 @@ function ProductsScreen({ user }) {
       setError(err.message);
     } finally {
       setLoading(false);
+      setShowDeleteConfirm(false);
+      setProductoToDelete(null);
     }
+  };
+
+  const confirmDelete = (producto) => {
+    setProductoToDelete(producto);
+    setShowDeleteConfirm(true);
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setProductoToDelete(null);
   };
 
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
-      setUser(null); // Esto debería manejarse en App.jsx vía onAuthStateChange
     } catch (err) {
       setError(`Error al cerrar sesión: ${err.message}`);
     }
@@ -168,10 +183,11 @@ function ProductsScreen({ user }) {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && isInitialLoad) {
       fetchProductos();
+      setIsInitialLoad(false);
     }
-  }, [user]);
+  }, [user, isInitialLoad]);
 
   if (loading) {
     return (
@@ -204,7 +220,7 @@ function ProductsScreen({ user }) {
         } md:translate-x-0 transition-transform duration-300 z-50`}
       >
         <div className="flex justify-between items-center mb-6">
-          <img src={logo} alt="Logo" className="w-32" />
+          <img src={logo} alt="Logo" className="w-44" />
           <button
             className="md:hidden text-foreground"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -218,6 +234,16 @@ function ProductsScreen({ user }) {
           <li
             className="py-2 text-muted hover:text-foreground cursor-pointer flex items-center gap-2"
             onClick={() => {
+              setIsAdding(false);
+              setEditProducto(null);
+              setIsMenuOpen(false);
+            }}
+          >
+            <FaList /> Productos
+          </li>
+          <li
+            className="py-2 text-muted hover:text-foreground cursor-pointer flex items-center gap-2"
+            onClick={() => {
               setIsAdding(true);
               setEditProducto(null);
               setIsMenuOpen(false);
@@ -227,12 +253,6 @@ function ProductsScreen({ user }) {
           </li>
           <li className="py-2 text-muted hover:text-foreground cursor-pointer flex items-center gap-2">
             <FaCog /> Configuración
-          </li>
-          <li
-            className="py-2 text-muted hover:text-foreground cursor-pointer flex items-center gap-2"
-            onClick={handleSignOut}
-          >
-            <FaSignOutAlt /> Cerrar sesión
           </li>
         </ul>
         <hr className="border-border my-4" />
@@ -272,22 +292,22 @@ function ProductsScreen({ user }) {
       </aside>
 
       <div className="flex-1 md:ml-64">
-        <header className="flex justify-between items-center p-4 bg-secondary border-b border-border">
+        <header className="flex justify-between md:justify-end items-center p-4 bg-secondary border-b border-border">
           <button
-            className="md:hidden text-foreground"
+            className="md:hidden text-foreground mr-4"
             onClick={() => setIsMenuOpen(true)}
           >
             <FaBars />
           </button>
           <button
             onClick={handleSignOut}
-            className="rounded-lg bg-primary border border-blue-400 text-white px-4 py-2 hover:bg-opacity-90"
+            className="rounded-lg border border-border text-white px-4 py-2 hover:bg-border/50"
           >
             Cerrar sesión
           </button>
         </header>
 
-        <main className="p-6">
+        <main className="p-4 md:p-8">
           {error && <p className="text-error text-sm mb-4">{error}</p>}
           {isAdding ? (
             <ProductForm
@@ -303,68 +323,87 @@ function ProductsScreen({ user }) {
             />
           ) : (
             <>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-foreground">
+                  Productos cargados
+                </h2>
+                <p className="text-muted text-sm mt-1">
+                  Total: {filteredProducts.length} productos cargados.
+                </p>
+              </div>
               {currentProducts.length === 0 ? (
                 <p className="text-muted text-lg text-center">
                   No hay productos.
                 </p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full bg-secondary border border-border rounded-lg shadow-md">
-                    <thead>
-                      <tr className="bg-muted/10 text-foreground text-left">
-                        <th className="p-3">Imagen</th>
-                        <th className="p-3">Nombre</th>
-                        <th className="p-3">Descripción</th>
-                        <th className="p-3">Stock</th>
-                        <th className="p-3">Color</th>
-                        <th className="p-3">Precio</th>
-                        <th className="p-3">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {currentProducts.map((producto) => (
-                        <tr
-                          key={producto.id}
-                          className="border-t border-border hover:bg-muted/5 transition-colors duration-200"
-                        >
-                          <td className="p-3">
-                            {producto.imagen_url && (
-                              <img
-                                src={producto.imagen_url}
-                                alt={producto.nombre}
-                                className="w-12 h-12 rounded-lg object-cover"
-                              />
-                            )}
-                          </td>
-                          <td className="p-3 text-foreground">
-                            {producto.nombre}
-                          </td>
-                          <td className="p-3 text-muted">
+                <div className="grid grid-cols-2 md:grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4">
+                  {currentProducts.map((producto) => (
+                    <div
+                      key={producto.id}
+                      className="bg-secondary rounded-xl shadow-md border border-border flex flex-col justify-between hover:shadow-lg transition-shadow duration-300 max-w-[230px] w-full"
+                    >
+                      <div>
+                        {producto.imagen_url ? (
+                          <img
+                            src={producto.imagen_url}
+                            alt={producto.nombre}
+                            className="w-full h-44 object-cover rounded-t-xl border-b border-border/20"
+                          />
+                        ) : (
+                          <div className="w-full h-40 bg-gray-100 flex items-center justify-center text-gray-500">
+                            Sin imagen
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        {" "}
+                        {/* Padding para separar la imagen del contenido */}
+                        <h3 className="text-lg font-semibold text-white mb-2 truncate">
+                          {producto.nombre}
+                        </h3>
+                        <div className="space-y-2">
+                          <p className="text-muted/80 text-sm mb-2 line-clamp-3 rounded">
                             {producto.descripcion}
-                          </td>
-                          <td className="p-3 text-muted">{producto.stock}</td>
-                          <td className="p-3 text-muted">{producto.color}</td>
-                          <td className="p-3 text-muted">${producto.precio}</td>
-                          <td className="p-3 flex gap-2">
-                            <button
-                              onClick={() => handleEditarProducto(producto)}
-                              className="p-2 text-muted/60 border border-border rounded-lg hover:text-primary hover:border-primary transition-colors duration-200"
-                            >
-                              <FaPencilAlt />
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleEliminarProducto(producto.id)
-                              }
-                              className="p-2 text-muted/60 border border-border rounded-lg hover:text-error hover:border-error transition-colors duration-200"
-                            >
-                              <FaTrash />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </p>
+                          <div className="text-muted text-sm space-y-1">
+                            <p className="border border-border/80 bg-background w-fit px-2 py-0.5 rounded-md">
+                              <span className="font-medium text-muted/75">
+                                Stock:
+                              </span>{" "}
+                              {producto.stock}
+                            </p>
+                            <p className="border border-border/80 bg-background w-fit px-2 py-0.5 rounded-md">
+                              <span className="font-medium text-muted/75">
+                                Color:
+                              </span>{" "}
+                              {producto.color}
+                            </p>
+                            <p className="border border-border/80 bg-background w-fit px-2 py-0.5 rounded-md">
+                              <span className="font-medium text-muted/75">
+                                Precio:
+                              </span>{" "}
+                              ${producto.precio}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-4 flex justify-start gap-4">
+                        <button
+                          onClick={() => confirmDelete(producto)}
+                          className="p-1 px-2 text-muted bg-muted/5 border border-border rounded-lg hover:text-red-500/80 hover:border-red-500/50 hover:bg-error/5 transition-colors duration-200"
+                        >
+                          <FaTrash className="h-3" />
+                        </button>
+                        <button
+                          onClick={() => handleEditarProducto(producto)}
+                          className="p-1 w-full flex items-center justify-center gap-2 text-muted bg-primary/25 border border-primary/20 rounded-lg hover:bg-primary/40  transition-colors duration-200"
+                        >
+                          <FaPencilAlt className="h-3" />
+                          Editar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
               {totalPages > 1 && (
@@ -385,6 +424,35 @@ function ProductsScreen({ user }) {
                 </div>
               )}
             </>
+          )}
+
+          {/* Popup de confirmación para eliminar */}
+          {showDeleteConfirm && productoToDelete && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-background rounded-lg p-6 max-w-sm w-full shadow-lg border border-border">
+                <h3 className="text-lg font-semibold text-white mb-4">
+                  ¿Estás seguro?
+                </h3>
+                <p className="text-muted mb-6">
+                  ¿Realmente deseas eliminar el producto "
+                  {productoToDelete.nombre}"? Esta acción no se puede deshacer.
+                </p>
+                <div className="flex justify-between gap-4">
+                  <button
+                    onClick={cancelDelete}
+                    className="px-4 py-2 text-muted border bg-muted/5 border-border rounded-lg hover:bg-muted/15 transition-colors duration-200"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => handleEliminarProducto(productoToDelete.id)}
+                    className="px-4 py-2 bg-red-500/75 uppercase border border-error text-white rounded-lg hover:bg-red-600 transition-colors duration-200"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
         </main>
       </div>

@@ -5,14 +5,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "#171717", // Fondo oscuro principal
-        backgroundtwo: "#0f0f0f", // Fondo casi negro utilizado para excepciones
+        background: "#111827", // Fondo oscuro principal
+        backgroundtwo: "#030712", // Fondo casi negro utilizado para excepciones
         foreground: "#fafafa", // Texto claro
         primary: "#1a76ff", // Azul principal btn
-        secondary: "#1f1f1f", // Gris oscuro secundario
+        secondary: "#1f2937", // Gris oscuro secundario
         muted: "#e0e4eb", // Gris medio para texto secundario
-        border: "#2e2e2e", // Borde gris oscuro
-        input: "#1c1c1c", // Fondo para inputs
+        border: "#4b5563", // Borde gris oscuro
+        input: "#111827", // Fondo para inputs
         error: "#FF3B30", // Rojo para errores
       },
       fontFamily: {
